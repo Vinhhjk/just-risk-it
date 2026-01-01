@@ -1,0 +1,37 @@
+{
+  "name": "contracts",
+  "version": "1.0.0",
+  "type": "module",
+  "scripts": {
+    "compile": "npx hardhat compile",
+    "deploy": "npx tsx scripts/deploy-crash-game.ts",
+    "deploy-pyth-test": "npx tsx scripts/deploy-pyth-test.ts",
+    "deploy-token": "npx tsx scripts/deploy-token.ts",
+    "test-pyth": "npx tsx scripts/test-pyth.ts",
+    "test-security": "npx tsx scripts/test-security.ts",
+    "crash-game": "npx tsx scripts/crash-game-server.ts",
+    "crash-game-client": "npx tsx scripts/crash-game-client.ts",
+    "calculate-probability": "npx tsx scripts/calculate-multiplier-probability.ts",
+    "verify-game": "npx tsx scripts/verify-game.ts",
+    "monitor-security": "npx tsx scripts/monitor-security.ts",
+    "test-instant-crash": "npx tsx scripts/test-instant-crash.ts",
+    "withdraw": "npx tsx scripts/withdraw-contract-balance.ts"
+  },
+  "devDependencies": {
+    "@nomicfoundation/hardhat-ignition": "^3.0.6",
+    "@nomicfoundation/hardhat-toolbox-viem": "^5.0.1",
+    "@types/node": "^22.19.2",
+    "@types/ws": "^8.18.1",
+    "forge-std": "github:foundry-rs/forge-std#v1.9.4",
+    "hardhat": "^3.1.0",
+    "typescript": "~5.8.0",
+    "viem": "^2.41.2"
+  },
+  "dependencies": {
+    "@openzeppelin/contracts": "^5.4.0",
+    "@pythnetwork/entropy-sdk-solidity": "^2.2.1",
+    "dotenv": "^17.2.3",
+    "ethers": "^6.16.0",
+    "yaml": "^2.8.2"
+  }
+}

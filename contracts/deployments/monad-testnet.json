@@ -1,0 +1,9 @@
+{
+  "network": "monad-testnet",
+  "chainId": 10143,
+  "contractAddress": "0x510f10a5A952e2BEb0156cCD800cfF29f7c0E890",
+  "switchboard": "0xD3860E2C66cBd5c969Fa7343e6912Eff0416bA33",
+  "deployer": "0xA6800E23f1553913A63488e56229073907C722a7",
+  "txHash": "0xadff25893db739c472552efe395bd3709d0d1a5fdf1358884491461c84f8e48d",
+  "blockNumber": null
+}
