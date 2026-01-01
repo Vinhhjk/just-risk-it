@@ -84,6 +84,15 @@ interface ChatMessage {
   timestamp: number;
 }
 
+interface Player {
+  id: string;
+  name: string;
+  bet: number;
+  cashOut?: number;
+  payout?: number;
+  status: 'pending' | 'cashed_out' | 'crashed';
+}
+
 const chatMessages: ChatMessage[] = []; // Store last 4 messages
 const MAX_CHAT_MESSAGES = 4;
 
@@ -102,6 +111,7 @@ interface CurrentGameState {
   latestUpdate: any | null; // Latest game update for chart
   recentChatMessages: ChatMessage[]; // Last 4 chat messages
   recentRounds: Array<{ roundId: number; multiplier: number }>; // Last 6 rounds' results
+  players: Player[]; // Active players in the current round
 }
 
 let currentGameState: CurrentGameState = {
@@ -111,7 +121,8 @@ let currentGameState: CurrentGameState = {
   bettingCloseTime: null,
   latestUpdate: null,
   recentChatMessages: [],
-  recentRounds: []
+  recentRounds: [],
+  players: []
 };
 
 async function runGame(
@@ -130,7 +141,8 @@ async function runGame(
     bettingCloseTime: null,
     latestUpdate: null,
     recentChatMessages: chatMessages.slice(-MAX_CHAT_MESSAGES),
-    recentRounds: currentGameState.recentRounds || []
+    recentRounds: currentGameState.recentRounds || [],
+    players: []
   };
 
   // Send initial status
@@ -285,7 +297,8 @@ async function runGame(
     bettingCloseTime: bettingCloseTime,
     latestUpdate: null,
     recentChatMessages: chatMessages.slice(-MAX_CHAT_MESSAGES),
-    recentRounds: currentGameState.recentRounds || []
+    recentRounds: currentGameState.recentRounds || [],
+    players: []
   };
 
   // Send "betting_open" status with betting close time
@@ -429,6 +442,11 @@ async function runGame(
 
       broadcastUpdate(update);
       console.log(`   CRASH at ${finalMultiplier}x`);
+
+      // Update player statuses to crashed if they haven't cashed out
+      currentGameState.players = currentGameState.players.map(p =>
+        p.status === 'pending' ? { ...p, status: 'crashed' as const } : p
+      );
       break;
     }
 
@@ -575,6 +593,39 @@ async function main() {
   console.log(`Network: ${networkName}`);
   console.log(`Contract: ${contractAddress}\n`);
 
+  // Listen for BetPlaced events to update player list in real-time
+  contract.on("BetPlaced", (roundId, user, amount) => {
+    const roundIdNum = Number(roundId);
+    if (roundIdNum === currentGameState.roundId) {
+      console.log(`   Bet detected: ${user} placed ${ethers.formatUnits(amount, 18)} tokens in round ${roundIdNum}`);
+
+      const newPlayer: Player = {
+        id: user.toLowerCase(),
+        name: formatAddress(user),
+        bet: Number(ethers.formatUnits(amount, 18)),
+        status: 'pending'
+      };
+
+      // Add to current players list if not already there
+      const playerExists = currentGameState.players.some(p => p.id.toLowerCase() === user.toLowerCase());
+      if (!playerExists) {
+        currentGameState.players.push(newPlayer);
+
+        // Broadcast new player to all clients
+        const message = JSON.stringify({
+          type: 'player_joined',
+          player: newPlayer
+        });
+
+        clients.forEach((client) => {
+          if (client.readyState === WebSocket.OPEN) {
+            client.send(message);
+          }
+        });
+      }
+    }
+  });
+
   // Start WebSocket server early
   const wsPort = parseInt(process.env.WS_PORT || '80');
   let wss: WebSocketServer;
@@ -689,6 +740,13 @@ async function main() {
 
       activeCashOuts.set(roundIdNum, [...existingCashOuts, cashOut]);
       console.log(`   Cash-out recorded! Round ${roundIdNum} now has ${activeCashOuts.get(roundIdNum)?.length || 0} cash-outs`);
+
+      // Update player list in global state
+      currentGameState.players = currentGameState.players.map(p =>
+        p.id.toLowerCase() === walletAddress.toLowerCase()
+          ? { ...p, status: 'cashed_out' as const, cashOut: multiplier, payout: payout }
+          : p
+      );
 
       // 6. Calculate payout with house edge (1.5%)
       const betAmount = Number(ethers.formatUnits(bet.amount, 18));

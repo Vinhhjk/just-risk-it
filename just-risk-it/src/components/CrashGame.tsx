@@ -324,7 +324,45 @@ export function CrashGame() {
           setStatus('Preparing game...');
           setBettingStatus('preparing'); // Mark as preparing
         }
+
+        // Restore players from snapshot
+        if (snapshot.players) {
+          setPlayers(snapshot.players.map(p => ({
+            id: p.id,
+            name: p.name,
+            bet: p.bet,
+            cashOut: p.cashOut,
+            payout: p.payout,
+            status: p.status
+          })));
+
+          // Check if current user has a bet in the snapshot
+          const walletAddress = wallets[0]?.address;
+          if (walletAddress) {
+            const currentPlayer = snapshot.players.find(p => p.id.toLowerCase() === walletAddress.toLowerCase());
+            if (currentPlayer) {
+              setHasBet(true);
+              if (currentPlayer.status === 'cashed_out') {
+                setCashOutMultiplier(currentPlayer.cashOut || null);
+              }
+            }
+          }
+        }
       }
+    },
+    onPlayerJoined: (message) => {
+      setPlayers((prev) => {
+        // Avoid duplicates
+        if (prev.some(p => p.id.toLowerCase() === message.player.id.toLowerCase())) {
+          return prev;
+        }
+        return [...prev, {
+          id: message.player.id,
+          name: message.player.name,
+          bet: message.player.bet,
+          status: message.player.status as 'pending' | 'cashed_out' | 'crashed'
+        }];
+      });
     },
     onChatMessage: (message: ChatMessage) => {
       setChatMessages((prev) => {

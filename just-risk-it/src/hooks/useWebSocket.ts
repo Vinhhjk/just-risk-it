@@ -37,6 +37,20 @@ export interface ChatMessage {
   timestamp: number;
 }
 
+export interface Player {
+  id: string;
+  name: string;
+  bet: number;
+  cashOut?: number;
+  payout?: number;
+  status: 'pending' | 'cashed_out' | 'crashed';
+}
+
+export interface PlayerJoinedMessage {
+  type: 'player_joined';
+  player: Player;
+}
+
 export interface StateSnapshot {
   type: 'state_snapshot';
   roundId: number | null;
@@ -46,6 +60,7 @@ export interface StateSnapshot {
   latestUpdate: UpdateMessage | null;
   recentChatMessages?: ChatMessage[];
   recentRounds?: Array<{ roundId: number; multiplier: number }>;
+  players?: Player[];
 }
 
 export interface CashOutResponse {
@@ -66,7 +81,7 @@ export interface UpdateMessage {
   nextGameNoMoreBetsAt: number;
 }
 
-type WebSocketMessage = StatusMessage | UpdateMessage | CashOutResponse | StateSnapshot | ChatMessage;
+type WebSocketMessage = StatusMessage | UpdateMessage | CashOutResponse | StateSnapshot | ChatMessage | PlayerJoinedMessage;
 
 interface UseWebSocketOptions {
   url: string;
@@ -75,6 +90,7 @@ interface UseWebSocketOptions {
   onCashOutResponse?: (response: CashOutResponse) => void;
   onStateSnapshot?: (snapshot: StateSnapshot) => void;
   onChatMessage?: (message: ChatMessage) => void;
+  onPlayerJoined?: (message: PlayerJoinedMessage) => void;
   onError?: (error: Event) => void;
   onOpen?: () => void;
   onClose?: () => void;
@@ -90,6 +106,7 @@ export function useWebSocket({
   onCashOutResponse,
   onStateSnapshot,
   onChatMessage,
+  onPlayerJoined,
   onError,
   onOpen,
   onClose,
@@ -102,13 +119,14 @@ export function useWebSocket({
   const wsRef = useRef<WebSocket | null>(null);
   const retryCountRef = useRef(0);
   const reconnectTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
-  
+
   // Store callbacks in refs to avoid recreating connect on every render
   const onStatusRef = useRef(onStatus);
   const onUpdateRef = useRef(onUpdate);
   const onCashOutResponseRef = useRef(onCashOutResponse);
   const onStateSnapshotRef = useRef(onStateSnapshot);
   const onChatMessageRef = useRef(onChatMessage);
+  const onPlayerJoinedRef = useRef(onPlayerJoined);
   const onErrorRef = useRef(onError);
   const onOpenRef = useRef(onOpen);
   const onCloseRef = useRef(onClose);
@@ -120,13 +138,14 @@ export function useWebSocket({
     onCashOutResponseRef.current = onCashOutResponse;
     onStateSnapshotRef.current = onStateSnapshot;
     onChatMessageRef.current = onChatMessage;
+    onPlayerJoinedRef.current = onPlayerJoined;
     onErrorRef.current = onError;
     onOpenRef.current = onOpen;
     onCloseRef.current = onClose;
-  }, [onStatus, onUpdate, onCashOutResponse, onStateSnapshot, onChatMessage, onError, onOpen, onClose]);
+  }, [onStatus, onUpdate, onCashOutResponse, onStateSnapshot, onChatMessage, onPlayerJoined, onError, onOpen, onClose]);
 
   // Store connect function in ref to avoid circular dependency
-  const connectRef = useRef<() => void>(() => {});
+  const connectRef = useRef<() => void>(() => { });
 
   const performConnect = useCallback(() => {
     // Prevent multiple connections
@@ -144,7 +163,7 @@ export function useWebSocket({
     setTimeout(() => {
       setConnectionStatus('connecting');
     }, 0);
-    
+
     try {
       const ws = new WebSocket(url);
       wsRef.current = ws;
@@ -159,7 +178,7 @@ export function useWebSocket({
       ws.onmessage = (event) => {
         try {
           const message: WebSocketMessage = JSON.parse(event.data);
-          
+
           if (message.type === 'status') {
             onStatusRef.current?.(message as StatusMessage);
           } else if (message.type === 'update') {
@@ -170,6 +189,8 @@ export function useWebSocket({
             onStateSnapshotRef.current?.(message as StateSnapshot);
           } else if (message.type === 'chat_message') {
             onChatMessageRef.current?.(message as ChatMessage);
+          } else if (message.type === 'player_joined') {
+            onPlayerJoinedRef.current?.(message as PlayerJoinedMessage);
           }
         } catch (error) {
           console.error('Error parsing WebSocket message:', error);
