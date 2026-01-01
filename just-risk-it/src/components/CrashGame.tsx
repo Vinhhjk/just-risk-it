@@ -40,7 +40,7 @@ const MONAD_TESTNET_CHAIN = {
   testnet: true,
 };
 import { GrGroup } from 'react-icons/gr';
-import { FaDice, FaGithub } from 'react-icons/fa';
+import { FaDice, FaGithub, FaCopy } from 'react-icons/fa';
 import { IoChatbubbleOutline } from 'react-icons/io5';
 
 const WS_URL = import.meta.env.VITE_WS_URL;
@@ -840,6 +840,31 @@ export function CrashGame() {
   return (
     <div className="h-screen relative overflow-x-hidden flex flex-col" style={{ backgroundColor: '#000000', color: '#F1F5F9' }}>
       <div className="w-full h-full pt-2 md:pt-3 overflow-x-hidden flex flex-col relative z-10" style={{ paddingLeft: '24px', paddingRight: '24px', paddingBottom: '32px', maxWidth: '1920px', margin: '0 auto' }}>
+        <div className="mb-4 mt-2 p-3 glass neon-border flex flex-col md:flex-row items-center justify-center gap-4 md:gap-8" style={{
+          backgroundColor: 'rgba(184, 167, 255, 0.05)',
+          borderColor: 'rgba(184, 167, 255, 0.3)',
+          borderRadius: '2px'
+        }}>
+          <div className="flex items-center gap-3">
+            <div className="w-2.5 h-2.5 rounded-full animate-pulse" style={{ backgroundColor: '#B8A7FF' }}></div>
+            <span className="font-bold text-sm md:text-base uppercase tracking-widest text-[#B8A7FF]">
+              Notice: If game is not running, please fund the server address with testnet MON to resume the loop:
+            </span>
+          </div>
+          <div className="flex items-center gap-3 bg-black/40 px-4 py-2 rounded border border-[#B8A7FF]/20">
+            <span className="font-mono text-base md:text-lg font-bold text-[#F1F5F9] opacity-90 select-all">0xA6800E23f1553913A63488e56229073907C722a7</span>
+            <button
+              onClick={() => {
+                navigator.clipboard.writeText('0xA6800E23f1553913A63488e56229073907C722a7');
+              }}
+              className="text-[#B8A7FF] hover:text-white transition-all transform hover:scale-125"
+              title="Copy Address"
+            >
+              <FaCopy size={18} />
+            </button>
+          </div>
+        </div>
+
         {/* Header */}
         <div className="mb-3 p-6 md:p-8">
           <div className="flex flex-col md:flex-row md:items-center md:justify-between mb-3 gap-2">
