@@ -26,15 +26,6 @@ export function Chat({ messages, onSendMessage }: ChatProps) {
 
   return (
     <div className="glass neon-border p-4 flex-1" style={{ display: 'flex', flexDirection: 'column', minHeight: '150px', borderRadius: '2px' }}>
-      <div className="flex gap-2 mb-2 pb-2" style={{ borderBottom: '1px solid rgba(184, 167, 255, 0.3)' }}>
-        <button className="px-3 py-1 font-light text-xs uppercase transition-all glass neon-border hover:bg-opacity-60" style={{ color: '#B8A7FF', borderRadius: '2px' }}>
-          History
-        </button>
-        <button className="px-3 py-1 font-light text-xs uppercase transition-all glass neon-border hover:bg-opacity-60" style={{ color: '#B8A7FF', borderRadius: '2px' }}>
-          Stats
-        </button>
-      </div>
-
       {/* Messages */}
       <div className="flex-1 overflow-y-auto mb-2 space-y-1">
         {messages.length === 0 ? (
