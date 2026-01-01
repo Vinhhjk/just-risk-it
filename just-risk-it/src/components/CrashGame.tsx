@@ -848,7 +848,7 @@ export function CrashGame() {
           <div className="flex items-center gap-2 md:gap-3">
             <div className="w-1.5 h-1.5 md:w-2.5 md:h-2.5 rounded-full animate-pulse flex-shrink-0" style={{ backgroundColor: '#B8A7FF' }}></div>
             <span className="font-bold text-[10px] md:text-base uppercase tracking-widest text-[#B8A7FF]">
-              Notice: If game is not running, please fund the server address with testnet MON to resume the loop:
+              Player's Notice: If you see the game is not running, please donate to the server address with testnet MON to resume the loop (this is not a bug, thank you so much!):
             </span>
           </div>
           <div className="flex items-center gap-2 md:gap-3 bg-black/40 px-3 py-1.5 md:px-4 md:py-2 rounded border border-[#B8A7FF]/20 max-w-full overflow-hidden">
