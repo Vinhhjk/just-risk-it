@@ -101,11 +101,11 @@ export function VerifyGame() {
         }
 
         // Debug: log the server seed to verify conversion
-        console.log('Retrieved server seed from contract (raw):', serverSeedRaw);
-        console.log('Retrieved server seed type:', typeof serverSeedRaw);
-        console.log('Decoded server seed (original hex string):', serverSeedStr);
-        console.log('Server seed length:', serverSeedStr.length);
-        console.log('Expected length: 64 (32 bytes as hex string)');
+        // console.log('Retrieved server seed from contract (raw):', serverSeedRaw);
+        // console.log('Retrieved server seed type:', typeof serverSeedRaw);
+        // console.log('Decoded server seed (original hex string):', serverSeedStr);
+        // console.log('Server seed length:', serverSeedStr.length);
+        // console.log('Expected length: 64 (32 bytes as hex string)');
 
         // Store in state for display (but use fresh values for verification)
         const currentRoundData = {
@@ -186,29 +186,11 @@ export function VerifyGame() {
         const seedBytes = toHex(seedBytesUint8); // Convert to hex string for viem.concat
         const chainBytes = pad(toHex(BigInt(chainId)), { size: 32 });
 
-        // Debug for round 2
-        if (roundIdNum === 2) {
-          console.log('deriveSeed inputs:');
-          console.log('  vrfRandom (string):', vrfRandom);
-          console.log('  vrfBigInt:', vrfBigInt.toString());
-          console.log('  vrfBytes:', vrfBytes);
-          console.log('  roundBytes:', roundBytes);
-          console.log('  seedBytes:', seedBytes);
-          console.log('  chainBytes:', chainBytes);
-        }
-
         // viem.concat only accepts hex strings (unlike ethers.concat which accepts mixed types)
         const combined = concat([vrfBytes, roundBytes, seedBytes, chainBytes]);
 
-        if (roundIdNum === 2) {
-          console.log('  combined (full):', combined);
-        }
 
         const hash = keccak256(combined);
-
-        if (roundIdNum === 2) {
-          console.log('  hash:', hash);
-        }
 
         return BigInt(hash);
       }
@@ -227,13 +209,13 @@ export function VerifyGame() {
       }
 
       // Debug: log entropyRandom value
-      console.log('entropyRandom (BigInt):', entropyRandom.toString());
-      console.log('entropyRandom (string):', entropyRandomStr);
+      // console.log('entropyRandom (BigInt):', entropyRandom.toString());
+      // console.log('entropyRandom (string):', entropyRandomStr);
 
       const derivedSeed = deriveSeed(entropyRandomStr, roundIdNum, serverSeed, chainId);
 
-      console.log('Derived seed:', derivedSeed.toString());
-      console.log('Derived seed (hex):', '0x' + derivedSeed.toString(16));
+      // console.log('Derived seed:', derivedSeed.toString());
+      // console.log('Derived seed (hex):', '0x' + derivedSeed.toString(16));
 
       // Generate game using the same algorithm as backend
       const houseEdge = 0.015;
@@ -258,29 +240,19 @@ export function VerifyGame() {
         const maxNum = Number(maxUint256);
         const result = hashNum / maxNum;
 
-        // Debug for round 2 issue
-        if (roundIdNum === 2) {
-          console.log(`getRandom(${i}) debug:`);
-          console.log('  hash:', hash);
-          console.log('  hashBigInt:', hashBigInt.toString());
-          console.log('  hashNum:', hashNum);
-          console.log('  maxNum:', maxNum);
-          console.log('  result:', result);
-        }
-
         return result;
       }
 
       const r0 = getRandom(0);
-      console.log('r0 (getRandom(0)):', r0);
+      // console.log('r0 (getRandom(0)):', r0);
       const p = houseEdge + r0 * (1 - houseEdge);
-      console.log('p:', p);
+      // console.log('p:', p);
       const rawMultiplier = (1 - houseEdge) / (1 - p);
-      console.log('rawMultiplier:', rawMultiplier);
+      // console.log('rawMultiplier:', rawMultiplier);
       const crashMultiplier = Math.max(1.00, Math.min(rawMultiplier, 10000));
-      console.log('crashMultiplier:', crashMultiplier);
+      // console.log('crashMultiplier:', crashMultiplier);
       const finalMultiplier = Math.round(crashMultiplier * 100) / 100;
-      console.log('finalMultiplier:', finalMultiplier);
+      // console.log('finalMultiplier:', finalMultiplier);
 
       setVerificationResult({
         success: true,
