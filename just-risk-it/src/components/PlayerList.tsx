@@ -11,11 +11,10 @@ interface PlayerListProps {
   players: Player[];
   totalBetting: number;
   playerCount: number;
-  watchingCount: number;
   roundId: number | null;
 }
 
-export function PlayerList({ players, totalBetting, playerCount, watchingCount, roundId }: PlayerListProps) {
+export function PlayerList({ players, totalBetting, playerCount, roundId }: PlayerListProps) {
   return (
     <div className="glass neon-border p-4 flex flex-col" style={{ height: '100%', maxHeight: 'calc(100vh - 48px)', borderRadius: '2px' }}>
       <div className="flex items-center justify-between mb-4">

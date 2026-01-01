@@ -1211,7 +1211,6 @@ export function CrashGame() {
               players={players}
               totalBetting={players.reduce((sum, p) => sum + p.bet, 0)}
               playerCount={players.length}
-              watchingCount={50}
               roundId={roundId}
             />
           </div>
@@ -1273,7 +1272,6 @@ export function CrashGame() {
                   players={players}
                   totalBetting={players.reduce((sum, p) => sum + p.bet, 0)}
                   playerCount={players.length}
-                  watchingCount={50}
                   roundId={roundId}
                 />
                 {/* Bet Button - Opens betting panel */}
