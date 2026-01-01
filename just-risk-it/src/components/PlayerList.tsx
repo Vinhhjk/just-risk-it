@@ -58,7 +58,6 @@ export function PlayerList({ players, totalBetting, playerCount, watchingCount, 
           <div>Round: <span style={{ color: '#B8A7FF' }}>{roundId || 'N/A'}</span></div>
           <div>Betting: <span style={{ color: '#B8A7FF' }}>{totalBetting.toFixed(2)} mCHOG</span></div>
           <div>Players: <span style={{ color: '#B8A7FF' }}>{playerCount}</span></div>
-          <div>Watching: <span style={{ color: '#B8A7FF' }}>{watchingCount}</span></div>
         </div>
       </div>
     </div>
