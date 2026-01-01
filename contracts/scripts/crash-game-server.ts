@@ -588,43 +588,95 @@ async function main() {
   const contract = new ethers.Contract(contractAddress, contractArtifact.abi, wallet);
 
   const entropy = new ethers.Contract(network.entropy, PYTH_ENTROPY_ABI, wallet);
+  // Listen for BetPlaced events to update player list in real-time
+  // contract.on("BetPlaced", (roundId, user, amount) => {
+  //   const roundIdNum = Number(roundId);
+  //   if (roundIdNum === currentGameState.roundId) {
+  //     console.log(`   Bet detected: ${user} placed ${ethers.formatUnits(amount, 18)} tokens in round ${roundIdNum}`);
+
+  //     const newPlayer: Player = {
+  //       id: user.toLowerCase(),
+  //       name: formatAddress(user),
+  //       bet: Number(ethers.formatUnits(amount, 18)),
+  //       status: 'pending'
+  //     };
+
+  //     // Add to current players list if not already there
+  //     const playerExists = currentGameState.players.some(p => p.id.toLowerCase() === user.toLowerCase());
+  //     if (!playerExists) {
+  //       currentGameState.players.push(newPlayer);
+
+  //       // Broadcast new player to all clients
+  //       const message = JSON.stringify({
+  //         type: 'player_joined',
+  //         player: newPlayer
+  //       });
+
+  //       clients.forEach((client) => {
+  //         if (client.readyState === WebSocket.OPEN) {
+  //           client.send(message);
+  //         }
+  //       });
+  //     }
+  //   }
+  // });
 
   console.log(`\nCrash Game Server - Continuous Mode\n`);
   console.log(`Network: ${networkName}`);
   console.log(`Contract: ${contractAddress}\n`);
 
-  // Listen for BetPlaced events to update player list in real-time
-  contract.on("BetPlaced", (roundId, user, amount) => {
-    const roundIdNum = Number(roundId);
-    if (roundIdNum === currentGameState.roundId) {
-      console.log(`   Bet detected: ${user} placed ${ethers.formatUnits(amount, 18)} tokens in round ${roundIdNum}`);
+  // Listen for BetPlaced events using polling (since Monad RPC doesn't support filters)
+  let lastCheckedBlock = 0;
 
-      const newPlayer: Player = {
-        id: user.toLowerCase(),
-        name: formatAddress(user),
-        bet: Number(ethers.formatUnits(amount, 18)),
-        status: 'pending'
-      };
-
-      // Add to current players list if not already there
-      const playerExists = currentGameState.players.some(p => p.id.toLowerCase() === user.toLowerCase());
-      if (!playerExists) {
-        currentGameState.players.push(newPlayer);
-
-        // Broadcast new player to all clients
-        const message = JSON.stringify({
-          type: 'player_joined',
-          player: newPlayer
-        });
-
-        clients.forEach((client) => {
-          if (client.readyState === WebSocket.OPEN) {
-            client.send(message);
-          }
-        });
+  async function syncPlayerBets() {
+    try {
+      const currentBlock = await provider.getBlockNumber();
+      if (lastCheckedBlock === 0) {
+        lastCheckedBlock = currentBlock - 50; // Check last 50 blocks on startup
       }
+
+      if (currentBlock <= lastCheckedBlock) return;
+
+      // Query for BetPlaced events
+      const filter = contract.filters.BetPlaced(currentGameState.roundId);
+      const logs = await contract.queryFilter(filter, lastCheckedBlock + 1, currentBlock);
+
+      for (const log of logs) {
+        // Handle both EventLog and Log types from ethers
+        const roundId = (log as any).args ? (log as any).args[0] : null;
+        const user = (log as any).args ? (log as any).args[1] : null;
+        const amount = (log as any).args ? (log as any).args[2] : null;
+
+        if (roundId && Number(roundId) === currentGameState.roundId) {
+          const userAddr = user.toLowerCase();
+          const playerExists = currentGameState.players.some(p => p.id.toLowerCase() === userAddr);
+
+          if (!playerExists) {
+            const newPlayer: Player = {
+              id: userAddr,
+              name: formatAddress(userAddr),
+              bet: Number(ethers.formatUnits(amount, 18)),
+              status: 'pending'
+            };
+            currentGameState.players.push(newPlayer);
+            console.log(`   Bet synced from DB: ${userAddr} (${newPlayer.bet} tokens)`);
+
+            // Broadcast to all connected clients
+            const broadcastMessage = JSON.stringify({ type: 'player_joined', player: newPlayer });
+            clients.forEach(client => {
+              if (client.readyState === 1) client.send(broadcastMessage);
+            });
+          }
+        }
+      }
+      lastCheckedBlock = currentBlock;
+    } catch (error: any) {
+      console.error(`   Error polling BetPlaced logs: ${error.message}`);
     }
-  });
+  }
+
+  // Poll for new bets every 2 seconds
+  const pollingInterval = setInterval(syncPlayerBets, 2000);
 
   // Start WebSocket server early
   const wsPort = parseInt(process.env.WS_PORT || '80');
@@ -741,13 +793,6 @@ async function main() {
       activeCashOuts.set(roundIdNum, [...existingCashOuts, cashOut]);
       console.log(`   Cash-out recorded! Round ${roundIdNum} now has ${activeCashOuts.get(roundIdNum)?.length || 0} cash-outs`);
 
-      // Update player list in global state
-      currentGameState.players = currentGameState.players.map(p =>
-        p.id.toLowerCase() === walletAddress.toLowerCase()
-          ? { ...p, status: 'cashed_out' as const, cashOut: multiplier, payout: payout }
-          : p
-      );
-
       // 6. Calculate payout with house edge (1.5%)
       const betAmount = Number(ethers.formatUnits(bet.amount, 18));
       const payoutBeforeFee = betAmount * multiplier;
@@ -770,6 +815,30 @@ async function main() {
         console.error(`   Warning: Could not check contract balance for max win limit: ${error.message}`);
         // Continue with calculated payout if we can't check balance
       }
+
+      // Update player list in global state
+      currentGameState.players = currentGameState.players.map(p =>
+        p.id.toLowerCase() === walletAddress.toLowerCase()
+          ? { ...p, status: 'cashed_out' as const, cashOut: multiplier, payout: payout }
+          : p
+      );
+
+      // Broadcast cash-out to all clients
+      const broadcastMessage = JSON.stringify({
+        type: 'player_cashed_out',
+        player: {
+          id: walletAddress.toLowerCase(),
+          cashOut: multiplier,
+          payout: payout,
+          status: 'cashed_out'
+        }
+      });
+
+      clients.forEach((client) => {
+        if (client.readyState === 1) { // 1 = OPEN
+          client.send(broadcastMessage);
+        }
+      });
 
       // 8. Send confirmation
       ws.send(JSON.stringify({

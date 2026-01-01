@@ -364,6 +364,20 @@ export function CrashGame() {
         }];
       });
     },
+    onPlayerCashedOut: (message) => {
+      setPlayers((prev) =>
+        prev.map((p) =>
+          p.id.toLowerCase() === message.player.id.toLowerCase()
+            ? {
+              ...p,
+              cashOut: message.player.cashOut,
+              payout: message.player.payout,
+              status: 'cashed_out' as const,
+            }
+            : p
+        )
+      );
+    },
     onChatMessage: (message: ChatMessage) => {
       setChatMessages((prev) => {
         // Avoid duplicates

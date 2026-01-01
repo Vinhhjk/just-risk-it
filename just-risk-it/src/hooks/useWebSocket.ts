@@ -51,6 +51,16 @@ export interface PlayerJoinedMessage {
   player: Player;
 }
 
+export interface PlayerCashedOutMessage {
+  type: 'player_cashed_out';
+  player: {
+    id: string;
+    cashOut: number;
+    payout: number;
+    status: 'cashed_out';
+  };
+}
+
 export interface StateSnapshot {
   type: 'state_snapshot';
   roundId: number | null;
@@ -81,7 +91,7 @@ export interface UpdateMessage {
   nextGameNoMoreBetsAt: number;
 }
 
-type WebSocketMessage = StatusMessage | UpdateMessage | CashOutResponse | StateSnapshot | ChatMessage | PlayerJoinedMessage;
+type WebSocketMessage = StatusMessage | UpdateMessage | CashOutResponse | StateSnapshot | ChatMessage | PlayerJoinedMessage | PlayerCashedOutMessage;
 
 interface UseWebSocketOptions {
   url: string;
@@ -91,6 +101,7 @@ interface UseWebSocketOptions {
   onStateSnapshot?: (snapshot: StateSnapshot) => void;
   onChatMessage?: (message: ChatMessage) => void;
   onPlayerJoined?: (message: PlayerJoinedMessage) => void;
+  onPlayerCashedOut?: (message: PlayerCashedOutMessage) => void;
   onError?: (error: Event) => void;
   onOpen?: () => void;
   onClose?: () => void;
@@ -107,6 +118,7 @@ export function useWebSocket({
   onStateSnapshot,
   onChatMessage,
   onPlayerJoined,
+  onPlayerCashedOut,
   onError,
   onOpen,
   onClose,
@@ -127,6 +139,7 @@ export function useWebSocket({
   const onStateSnapshotRef = useRef(onStateSnapshot);
   const onChatMessageRef = useRef(onChatMessage);
   const onPlayerJoinedRef = useRef(onPlayerJoined);
+  const onPlayerCashedOutRef = useRef(onPlayerCashedOut);
   const onErrorRef = useRef(onError);
   const onOpenRef = useRef(onOpen);
   const onCloseRef = useRef(onClose);
@@ -139,10 +152,11 @@ export function useWebSocket({
     onStateSnapshotRef.current = onStateSnapshot;
     onChatMessageRef.current = onChatMessage;
     onPlayerJoinedRef.current = onPlayerJoined;
+    onPlayerCashedOutRef.current = onPlayerCashedOut;
     onErrorRef.current = onError;
     onOpenRef.current = onOpen;
     onCloseRef.current = onClose;
-  }, [onStatus, onUpdate, onCashOutResponse, onStateSnapshot, onChatMessage, onPlayerJoined, onError, onOpen, onClose]);
+  }, [onStatus, onUpdate, onCashOutResponse, onStateSnapshot, onChatMessage, onPlayerJoined, onPlayerCashedOut, onError, onOpen, onClose]);
 
   // Store connect function in ref to avoid circular dependency
   const connectRef = useRef<() => void>(() => { });
@@ -191,6 +205,8 @@ export function useWebSocket({
             onChatMessageRef.current?.(message as ChatMessage);
           } else if (message.type === 'player_joined') {
             onPlayerJoinedRef.current?.(message as PlayerJoinedMessage);
+          } else if (message.type === 'player_cashed_out') {
+            onPlayerCashedOutRef.current?.(message as PlayerCashedOutMessage);
           }
         } catch (error) {
           console.error('Error parsing WebSocket message:', error);
